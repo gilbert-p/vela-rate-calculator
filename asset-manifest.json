@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/vela-rate-calculator/static/css/main.44ad6a53.css",
+    "main.js": "/vela-rate-calculator/static/js/main.04135499.js",
+    "static/js/453.2786f816.chunk.js": "/vela-rate-calculator/static/js/453.2786f816.chunk.js",
+    "index.html": "/vela-rate-calculator/index.html",
+    "main.44ad6a53.css.map": "/vela-rate-calculator/static/css/main.44ad6a53.css.map",
+    "main.04135499.js.map": "/vela-rate-calculator/static/js/main.04135499.js.map",
+    "453.2786f816.chunk.js.map": "/vela-rate-calculator/static/js/453.2786f816.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.44ad6a53.css",
+    "static/js/main.04135499.js"
+  ]
+}
