@@ -6,71 +6,25 @@ import {
 
 
 
-const initialData = [
-  { month_iteration: 1, processing_rate_without_surcharge: 1255.76,},
-  { month_iteration: 2, processing_rate_without_surcharge: 1318.10,},
-  { month_iteration: 3, processing_rate_without_surcharge: 1381.44,},
-  { month_iteration: 4, processing_rate_without_surcharge: 1443.76,},
-  { month_iteration: 5, processing_rate_without_surcharge: 1506.10,},
-  { month_iteration: 6, processing_rate_without_surcharge: 1569.44,},
-  { month_iteration: 7, processing_rate_without_surcharge: 1632.76,},
-  { month_iteration: 8, processing_rate_without_surcharge: 1695.10,},
-  { month_iteration: 9, processing_rate_without_surcharge: 1757.44,},
-  { month_iteration: 10, processing_rate_without_surcharge: 1820.76,},
-  { month_iteration: 11, processing_rate_without_surcharge: 1883.10,},
-  { month_iteration: 12, processing_rate_without_surcharge: 1946.44,},
-];
-
-const calculateAvgSalePerTicket = (monthly_sales, ticket_count) => {
-  if (ticket_count <= 0) return 0;
-
-  return monthly_sales/ticket_count;
-};
-
-const transactionSurchargeTotal = (surcharge_cost, ticket_count) => {
-  return surcharge_cost * ticket_count;
-};
-
-const processingRateCost = (monthly_sales, processing_rate) => {
-  return monthly_sales * processing_rate;
-};
-
-const totalProcessingCost = (transaction_surcharge_total, processing_rate_cost) => {
-  return transaction_surcharge_total + processing_rate_cost;
-};
-
-const trueProcessingRate = (total_processing_cost, monthly_sales) => {
-  if(monthly_sales <= 0) return 0;
-
-  return total_processing_cost/monthly_sales;
-};
 
 function App() {
-  const [graphData, setGraphData] = useState(initialData);
+  const [graphData, setGraphData] = useState(null);
 
   const [formData, setForm] = useState({
     monthly_sales: '',
     avg_tickets: '',
   });
 
-  const [rate, setRate] = useState(0.03);
+  const [processingRate, setProcessingRate] = useState(0.03);
 
-  const [chargePerTransaction, setChargePerTransaction] = useState('0.10');
-
-  const [singleDataPoint, setSingleDataPoint] = useState(0);
-
+  const [chargePerTransaction, setChargePerTransaction] = useState(0.10);
+  const [alternateChargePerTransaction, setAlternateChargePerTransaction] = useState(0.15);
 
 
-  useEffect(()=>{
-
-    // setGraphData(generateLinearDataFromSingleSource(singleDataPoint));
-    generateLinearDataFromSingleSource(singleDataPoint);
-
-  }, [singleDataPoint])
 
 
   const handleRateChange = (e) => {
-    setRate(e.target.value);
+    setProcessingRate(e.target.value);
   };
 
   const handleChargeChange = (e) => {
@@ -82,6 +36,18 @@ function App() {
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
+  const processVelaRate = (monthly_sales) => {
+    let processing_rate = 0.035;
+
+    return (processing_rate * monthly_sales);
+  }
+
+  const processAlternateRate = (monthly_sales) => {
+    let processing_rate = 0.045;
+    
+    return (processing_rate * monthly_sales);
+  }
+
   const handleAddData = (e) => {
     e.preventDefault();
     if (!formData.monthly_sales || !formData.avg_tickets) return;
@@ -91,35 +57,38 @@ function App() {
 
 
     let avg_sale_per_ticket = month_sales / tickets;
-    let processing_cost_no_surcharge = parseFloat(month_sales * rate);
+    let vela_processing_cost_no_surcharge = processVelaRate(month_sales);
+    let alternate_processing_cost_no_surcharge = processAlternateRate(month_sales);
 
-    setSingleDataPoint(processing_cost_no_surcharge);
 
-
-    setGraphData(prev => [...prev, {
-      month_iteration: graphData.length,
-      processing_rate_without_surcharge: processing_cost_no_surcharge,
-    }]);
+    setGraphData(generateLinearDataFromSingleSource(vela_processing_cost_no_surcharge, alternate_processing_cost_no_surcharge, tickets));
 
     setForm({ monthly_sales: '', avg_tickets: '',});
   };
 
-  const generateLinearDataFromSingleSource = (single_month_cost) => {
+  const generateLinearDataFromSingleSource = (vela_processing_cost_no_surcharge, alternate_processing_cost_no_surcharge, tickets) => {
 
-    const empty_array = Array(11).fill(0);
+    const empty_array = Array(12).fill(0);
 
-    // const year_data_set = [single_month_cost, ...empty_array];
+    const linear_rate = 0.02;
 
-    const linear_rate = 0.05;
+    const year_data_set = [...empty_array].map((value, iteration) => {
+      const rate = vela_processing_cost_no_surcharge * (1 + linear_rate * iteration);
 
-    const year_data_set = [single_month_cost, ...empty_array].map((value, iteration) => {
-      return value > 0
-        ? value
-        : single_month_cost * (1 + linear_rate * iteration);
+      const alternate_rate = alternate_processing_cost_no_surcharge * (1 + linear_rate * iteration);
+
+      const rate_surcharge_cost = chargePerTransaction * tickets;
+      const alternate_rate_surcharge_cost = alternateChargePerTransaction * tickets;
+    
+      return {
+        month_iteration: iteration + 1,
+        vela_processing_rate_without_surcharge: (parseFloat(rate) + parseFloat(rate_surcharge_cost)).toFixed(2),
+        alternate_processing_rate_without_surcharge: (parseFloat(alternate_rate) + parseFloat(alternate_rate_surcharge_cost)).toFixed(2),
+      };
     });
-
     console.log(year_data_set);
     
+    return year_data_set;
   }
 
   return (
@@ -132,7 +101,7 @@ function App() {
             type="number"
             id="rate"
             name="rate"
-            value={rate}
+            value={processingRate}
             onChange={handleRateChange}
             placeholder="e.g. 2.5"
             style={{ padding: '8px', fontSize: '1em', width: '150px' }}
@@ -178,9 +147,10 @@ function App() {
           <LineChart data={graphData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month_iteration" />
-            <YAxis />
+            <YAxis domain={['dataMin - 300', 'dataMax + 100']}/>
             <Tooltip />
-            <Line type="monotone" dataKey="processing_rate_without_surcharge" stroke="#ff0000" name="processing_rate_without_surcharge" />
+            <Line type="monotone" dataKey="alternate_processing_rate_without_surcharge" stroke="#ff6f00" name="Your Current Rate" />
+            <Line type="monotone" dataKey="vela_processing_rate_without_surcharge" stroke="#a900ff" name="VelaOne's Rate" />
           </LineChart>
         </ResponsiveContainer>
       </div>
